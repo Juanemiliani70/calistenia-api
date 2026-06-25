@@ -1,0 +1,21 @@
+# Archivos compilados que Python genera automáticamente al ejecutar el código
+__pycache__/
+*.py[cod]
+
+# Variables de entorno con claves secretas
+*.env
+.env
+
+# Entorno virtual de Python
+venv/
+.venv/
+
+# Metadata que se genera al instalar el proyecto localmente con pip
+*.egg-info/
+
+# Carpetas que se generan al empaquetar el proyecto para distribución
+dist/
+build/
+
+# Caché de pytest
+.pytest_cache/

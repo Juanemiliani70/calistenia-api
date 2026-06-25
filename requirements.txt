@@ -1,0 +1,32 @@
+# Framework web principal
+fastapi==0.111.0
+
+# Servidor ASGI que levanta la aplicación FastAPI
+uvicorn==0.29.0
+
+# ORM para interactuar con la base de datos usando Python en lugar de SQL puro
+sqlalchemy==2.0.30
+
+# Driver que conecta SQLAlchemy con PostgreSQL
+psycopg2-binary==2.9.9
+
+# Maneja migraciones de base de datos (cambios en tablas con control de versiones)
+alembic==1.13.1
+
+# Generación y validación de tokens JWT para autenticación
+python-jose[cryptography]==3.3.0
+
+# Hasheo seguro de contraseñas con bcrypt
+passlib[bcrypt]==4.0.1
+
+# Lee automáticamente las variables del archivo .env
+python-dotenv==1.0.1
+
+# Necesario para recibir formularios y archivos en FastAPI
+python-multipart==0.0.9
+
+# Validación de datos y tipos (incluye validación de email)
+pydantic[email]==2.7.1
+
+# Permite usar variables de entorno como configuración tipada con Pydantic
+pydantic-settings==2.2.1
