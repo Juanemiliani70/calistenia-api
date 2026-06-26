@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.models.user import Usuario, TipoUsuario
 from app.models.student import Alumno
@@ -9,6 +9,8 @@ from app.models.token import RefreshToken
 from app.schemas.student import AlumnoCreate
 from app.schemas.teacher import ProfesorCreate
 from app.core.security import hashear_password, verificar_password, crear_access_token, crear_refresh_token, verificar_token
+from app.core.config import settings
+
 
 # ── REGISTRO ─────────────────────────────────────────────────────────────────
 
@@ -43,7 +45,10 @@ def registrar_alumno(db: Session, datos: AlumnoCreate) -> Usuario:
     db.add(alumno)
     db.commit()
     db.refresh(usuario)
-    return usuario
+    token_verificacion = crear_access_token(
+        data={"sub": str(usuario.id), "tipo": "email_verification"},
+    )
+    return usuario, token_verificacion
 
 def registrar_profesor(db: Session, datos: ProfesorCreate) -> Usuario:
     """
@@ -76,6 +81,47 @@ def registrar_profesor(db: Session, datos: ProfesorCreate) -> Usuario:
         descripcion_bio=datos.descripcion_bio,
     )
     db.add(profesor)
+    db.commit()
+    db.refresh(usuario)
+    token_verificacion = crear_access_token(
+        data={"sub": str(usuario.id), "tipo": "email_verification"},
+    )
+    return usuario, token_verificacion
+
+def verificar_email(db: Session, token: str) -> Usuario:
+    """
+    HU-05 — Verifica el email del usuario a partir del token recibido.
+    """
+    try:
+        payload = verificar_token(token)
+        id_usuario = int(payload.get("sub"))
+        tipo = payload.get("tipo")
+
+        if tipo != "email_verification":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token inválido"
+            )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token inválido o expirado"
+        )
+
+    usuario = db.query(Usuario).filter(Usuario.id == id_usuario).first()
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+
+    if usuario.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El email ya fue verificado"
+        )
+
+    usuario.email_verified = True
     db.commit()
     db.refresh(usuario)
     return usuario
@@ -131,3 +177,51 @@ def login(db: Session, email: str, password: str) -> dict:
         "refresh_token": refresh_token,
         "token_type": "bearer"
     }
+
+# ── RECUPERACIÓN DE CONTRASEÑA ────────────────────────────────────────────────
+
+def solicitar_recuperacion(db: Session, email: str) -> tuple[Usuario, str] | None:
+    """
+    HU-08 — Genera un token de recuperación de contraseña.
+    Devuelve None si el email no existe (por seguridad no revelamos si existe).
+    """
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+    if not usuario:
+        return None
+
+    token = crear_access_token(
+        data={"sub": str(usuario.id), "tipo": "password_reset"},
+    )
+    return usuario, token
+
+def resetear_password(db: Session, token: str, nueva_password: str) -> Usuario:
+    """
+    HU-08 — Actualiza la contraseña del usuario a partir del token de recuperación.
+    """
+    try:
+        payload = verificar_token(token)
+        id_usuario = int(payload.get("sub"))
+        tipo = payload.get("tipo")
+
+        if tipo != "password_reset":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token inválido"
+            )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token inválido o expirado"
+        )
+
+    usuario = db.query(Usuario).filter(Usuario.id == id_usuario).first()
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+
+    usuario.password = hashear_password(nueva_password)
+    db.commit()
+    db.refresh(usuario)
+    return usuario

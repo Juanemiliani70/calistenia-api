@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     # Tiempo de expiración del refresh token en días
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # Variables de email
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: str
+    MAIL_FROM: str
+    MAIL_SERVER: str
+    MAIL_PORT: int = 587
+
     class Config:
         # Indica a Pydantic que lea las variables desde el archivo .envPy
         env_file = ".env"
