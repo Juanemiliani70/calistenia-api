@@ -14,6 +14,7 @@ class UsuarioCreate(UsuarioBase):
 # Schema para la respuesta — nunca devuelve la contraseña
 class UsuarioResponse(UsuarioBase):
     id: int
+    nombre: str | None = None
     email_verified: bool
     is_active: bool
     created_at: datetime

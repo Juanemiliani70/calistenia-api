@@ -3,7 +3,7 @@ from fastapi import HTTPException, status
 from datetime import datetime, timedelta
 
 from app.models.user import Usuario, TipoUsuario
-from app.models.student import Alumno
+from app.models.student import Alumno, EstadoAlumno
 from app.models.teacher import Profesor
 from app.models.token import RefreshToken
 from app.schemas.student import AlumnoCreate
@@ -169,6 +169,19 @@ def login(db: Session, email: str, password: str) -> dict:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Debes verificar tu email antes de iniciar sesión"
         )
+    
+     # Si es alumno, validar que su profesor lo haya aprobado (HU-06)
+    if usuario.tipo == TipoUsuario.alumno and usuario.alumno:
+        if usuario.alumno.estado == EstadoAlumno.pendiente:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tu cuenta está pendiente de aprobación por tu profesor"
+            )
+        if usuario.alumno.estado == EstadoAlumno.rechazado:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tu solicitud fue rechazada por el profesor"
+            )
 
     # Generar tokens
     payload = {"sub": str(usuario.id), "tipo": usuario.tipo.value}

@@ -17,7 +17,7 @@ from app.services.email import (
     enviar_email_recuperacion
 )
 from app.core.dependencies import get_usuario_actual
-from app.models.user import Usuario
+from app.models.user import Usuario, TipoUsuario
 from pydantic import BaseModel, EmailStr
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
@@ -79,11 +79,28 @@ def login_usuario(
     return login(db, email=form_data.username, password=form_data.password)
 
 @router.get("/me", response_model=UsuarioResponse)
-def get_me(usuario_actual: Usuario = Depends(get_usuario_actual)):
+def get_me(
+    usuario_actual: Usuario = Depends(get_usuario_actual),
+    db: Session = Depends(get_db)
+):
     """
-    Devuelve los datos del usuario autenticado.
+    Devuelve los datos del usuario autenticado, incluyendo su nombre.
     """
-    return usuario_actual
+    nombre = None
+    if usuario_actual.tipo == TipoUsuario.alumno and usuario_actual.alumno:
+        nombre = usuario_actual.alumno.nombre
+    elif usuario_actual.tipo == TipoUsuario.profesor and usuario_actual.profesor:
+        nombre = usuario_actual.profesor.nombre
+
+    return UsuarioResponse(
+        id=usuario_actual.id,
+        email=usuario_actual.email,
+        tipo=usuario_actual.tipo,
+        nombre=nombre,
+        email_verified=usuario_actual.email_verified,
+        is_active=usuario_actual.is_active,
+        created_at=usuario_actual.created_at,
+    )
 
 @router.post("/recuperar-password")
 async def solicitar_recuperacion_endpoint(
