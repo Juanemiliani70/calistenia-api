@@ -57,10 +57,11 @@ def listar_aprobados(
 def obtener_detalle_alumno(
     id_alumno: int,
     db: Session = Depends(get_db),
-    usuario: Usuario = Depends(get_usuario_actual)
+    profesor: Usuario = Depends(get_profesor_actual)
 ):
     """
     Devuelve el detalle de un alumno por su id.
-    Accesible por profesores y el propio alumno.
+    Solo accesible por el profesor al que pertenece el alumno.
     """
-    return obtener_alumno(db, id_alumno)
+    profesor_perfil = db.query(Profesor).filter(Profesor.id_usuario == profesor.id).first()
+    return obtener_alumno(db, id_alumno, profesor_perfil.id)

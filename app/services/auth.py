@@ -14,30 +14,40 @@ from app.core.config import settings
 
 # ── REGISTRO ─────────────────────────────────────────────────────────────────
 
-def registrar_alumno(db: Session, datos: AlumnoCreate) -> Usuario:
+def registrar_alumno(db: Session, datos: AlumnoCreate) -> tuple[Usuario, str]:
     """
-    Crea un nuevo usuario de tipo alumno.
-    El alumno queda en estado 'pendiente' hasta que un profesor lo apruebe (HU-06).
+    HU-02 — Crea un nuevo usuario de tipo alumno.
+    El alumno debe ingresar el código de invitación de su profesor para unirse a su academia.
+    Devuelve el usuario y el token de verificación para enviar por email.
     """
-    # Verificar que el email no esté registrado
     if db.query(Usuario).filter(Usuario.email == datos.email).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El email ya está registrado"
         )
 
-    # Crear el usuario base
+    # Validar que el código de invitación corresponda a un profesor existente
+    profesor = db.query(Profesor).filter(
+        Profesor.codigo_invitacion == datos.codigo_invitacion
+    ).first()
+
+    if not profesor:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Código de invitación inválido"
+        )
+
     usuario = Usuario(
         email=datos.email,
         password=hashear_password(datos.password),
         tipo=TipoUsuario.alumno,
     )
     db.add(usuario)
-    db.flush()  # Genera el id del usuario sin hacer commit todavía
+    db.flush()
 
-    # Crear el perfil del alumno vinculado al usuario
     alumno = Alumno(
         id_usuario=usuario.id,
+        id_profesor=profesor.id,
         nombre=datos.nombre,
         apellido=datos.apellido,
         nivel=datos.nivel,
@@ -45,9 +55,11 @@ def registrar_alumno(db: Session, datos: AlumnoCreate) -> Usuario:
     db.add(alumno)
     db.commit()
     db.refresh(usuario)
+
     token_verificacion = crear_access_token(
         data={"sub": str(usuario.id), "tipo": "email_verification"},
     )
+
     return usuario, token_verificacion
 
 def registrar_profesor(db: Session, datos: ProfesorCreate) -> Usuario:

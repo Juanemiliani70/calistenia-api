@@ -25,6 +25,7 @@ class ProfesorUpdate(BaseModel):
 # Schema para la respuesta — lo que devuelve la API
 class ProfesorResponse(ProfesorBase):
     id: int
+    codigo_invitacion: str
     created_at: datetime
 
     class Config:

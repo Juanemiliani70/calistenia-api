@@ -5,13 +5,11 @@ import enum
 
 from app.db.database import Base
 
-# Enum para el nivel del alumno
 class NivelAlumno(enum.Enum):
     principiante = "principiante"
     intermedio = "intermedio"
     avanzado = "avanzado"
 
-# Enum para el estado de aprobación del alumno (HU-06)
 class EstadoAlumno(enum.Enum):
     pendiente = "pendiente"
     aprobado = "aprobado"
@@ -26,6 +24,9 @@ class Alumno(Base):
     # Clave foránea — vincula el alumno con su usuario
     id_usuario = Column(Integer, ForeignKey("usuarios.id"), nullable=False, unique=True)
 
+    # Profesor al que pertenece este alumno — se completa al registrarse con el código de invitación
+    id_profesor = Column(Integer, ForeignKey("profesores.id"), nullable=False)
+
     # Datos personales
     nombre = Column(String, nullable=False)
     apellido = Column(String, nullable=False)
@@ -34,10 +35,9 @@ class Alumno(Base):
     nivel = Column(Enum(NivelAlumno), default=NivelAlumno.principiante)
 
     # Estado de aprobación por parte del profesor (HU-06)
-    # Comienza en pendiente hasta que un profesor lo apruebe
     estado = Column(Enum(EstadoAlumno), default=EstadoAlumno.pendiente)
 
-    # Profesor que revisó la solicitud — puede ser null si aún no fue revisada
+    # Profesor que revisó la solicitud — puede ser distinto si en el futuro se permite transferencia
     id_profesor_revisor = Column(Integer, ForeignKey("profesores.id"), nullable=True)
 
     # Fecha en que fue aprobado o rechazado
@@ -46,8 +46,11 @@ class Alumno(Base):
     # Fecha de creación del perfil
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relación con la tabla usuarios — accede al email, password, etc.
+    # Relación con la tabla usuarios
     usuario = relationship("Usuario", back_populates="alumno")
+
+    # Relación con el profesor al que pertenece (su academia)
+    profesor = relationship("Profesor", foreign_keys=[id_profesor], back_populates="alumnos")
 
     # Relación con el profesor que lo revisó
     profesor_revisor = relationship("Profesor", foreign_keys=[id_profesor_revisor])

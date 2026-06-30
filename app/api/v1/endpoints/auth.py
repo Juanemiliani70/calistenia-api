@@ -108,3 +108,18 @@ def resetear_password_endpoint(datos: NuevaPassword, db: Session = Depends(get_d
     """
     resetear_password(db, datos.token, datos.nueva_password)
     return {"message": "Contraseña actualizada correctamente."}
+
+@router.get("/mi-codigo-invitacion")
+def obtener_mi_codigo(
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_usuario_actual)
+):
+    """
+    Devuelve el código de invitación del profesor autenticado,
+    para que lo comparta con sus alumnos.
+    """
+    from app.models.teacher import Profesor
+    profesor = db.query(Profesor).filter(Profesor.id_usuario == usuario.id).first()
+    if not profesor:
+        raise HTTPException(status_code=404, detail="Solo los profesores tienen código de invitación")
+    return {"codigo_invitacion": profesor.codigo_invitacion}

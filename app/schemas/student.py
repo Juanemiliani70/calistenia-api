@@ -2,24 +2,24 @@ from pydantic import BaseModel
 from datetime import datetime
 from app.models.student import NivelAlumno, EstadoAlumno
 
-# Schema base — campos comunes
 class AlumnoBase(BaseModel):
     nombre: str
     apellido: str
     nivel: NivelAlumno = NivelAlumno.principiante
 
-# Schema para registrar un alumno — se usa en el endpoint de registro
+# Schema para registrar un alumno — ahora requiere el código de invitación del profesor
 class AlumnoCreate(AlumnoBase):
     email: str
     password: str
+    codigo_invitacion: str
 
-# Schema para aprobar o rechazar un alumno — se usa en el endpoint de HU-06
 class AlumnoRevision(BaseModel):
     estado: EstadoAlumno
-    
-# Schema para la respuesta — lo que devuelve la API
+
+# Schema para la respuesta — incluye el id del profesor al que pertenece
 class AlumnoResponse(AlumnoBase):
     id: int
+    id_profesor: int
     estado: EstadoAlumno
     created_at: datetime
 
